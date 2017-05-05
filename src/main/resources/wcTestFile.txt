@@ -1,0 +1,153 @@
+Data cleansing is the first step in any data science project, and often the most impor‐
+tant. Many clever analyses have been undone because the data analyzed had funda‐
+mental quality problems or underlying artifacts that biased the analysis or led the
+data scientist to see things that weren’t really there.
+Despite its importance, most textbooks and classes on data science either don’t cover
+data cleansing or only give it a passing mention. The explanation for this is simple:
+cleansing data is really boring. It is the tedious, dull work that you have to do before
+you can get to the really cool machine learning algorithm that you’ve been dying to
+apply to a new problem. Many new data scientists tend to rush past it to get their data
+into a minimally acceptable state, only to discover that the data has major quality
+issues after they apply their (potentially computationally intensive) algorithm and get
+a nonsense answer as output.
+Everyone has heard the saying “garbage in, garbage out.” But there is something even
+more pernicious: getting reasonable-looking answers from a reasonable-looking data
+set that has major (but not obvious at first glance) quality issues. Drawing significant
+conclusions based on this kind of mistake is the sort of thing that gets data scientists
+fired.
+One of the most important talents that you can develop as a data scientist is the abil‐
+ity to discover interesting and worthwhile problems in every phase of the data analyt‐
+ics lifecycle. The more skill and brainpower that you can apply early on in an analysis
+project, the stronger your confidence will be in your final product.
+
+Most data scientists have a favorite tool, like R or Python, for performing interactive
+data munging and analysis. Although they’re willing to work in other environments
+when they have to, data scientists tend to get very attached to their favorite tool, and
+are always looking to find a way to carry out whatever work they can using it. Intro‐
+ducing them to a new tool that has a new syntax and a new set of patterns to learn can
+be challenging under the best of circumstances.
+There are libraries and wrappers for Spark that allow you to use it from R or Python.
+The Python wrapper, which is called PySpark, is actually quite good, and we’ll cover
+some examples that involve using it in one of the later chapters in the book. But the
+vast majority of our examples will be written in Scala, because we think that learning
+how to work with Spark in the same language in which the underlying framework is
+written has a number of advantages for you as a data scientist
+There is another advantage to learning how to use Spark from Scala, but it’s a bit
+more difficult to explain because of how different it is from any other data analysis
+tool. If you’ve ever analyzed data that you pulled from a database in R or Python,
+you’re used to working with languages like SQL to retrieve the information you want,
+and then switching into R or Python to manipulate and visualize the data you’ve
+retrieved. You’re used to using one language (SQL) for retrieving and manipulating
+lots of data stored in a remote cluster and another language (Python/R) for manipu‐
+lating and visualizing information stored on your own machine. If you’ve been doing
+it for long enough, you probably don’t even think about it anymore.
+With Spark and Scala, the experience is different, because you’re using the same lan‐
+guage for everything. You’re writing Scala to retrieve data from the cluster via Spark.
+You’re writing Scala to manipulate that data locally on your own machine. And then
+—and this is the really neat part—you can send Scala code into the cluster so that you
+can perform the exact same transformations that you performed locally on data that
+is still stored in the cluster. It’s difficult to express how transformative it is to do all of
+your data munging and analysis in a single environment, regardless of where the data
+itself is stored and processed. It’s the sort of thing that you have to experience for
+yourself to understand, and we wanted to be sure that our examples captured some of
+that same magic feeling that we felt when we first started using Spark.
+
+purge, and list washing. Ironically, this makes it difficult to find all of the research
+papers on this topic across the literature in order to get a good overview of solution
+techniques; we need a data scientist to deduplicate the references to this data cleans‐
+ing problem! For our purposes in the rest of this chapter, we’re going to refer to this
+problem as record linkage.
+The general structure of the problem is something like this: we have a large collection
+of records from one or more source systems, and it is likely that some of the records
+refer to the same underlying entity, such as a customer, a patient, or the location of a
+business or an event. Each of the entities has a number of attributes, such as a name,
+an address, or a birthday, and we will need to use these attributes to find the records
+that refer to the same entity. Unfortunately, the values of these attributes aren’t per‐
+fect: values might have different formatting, or typos, or missing information that
+means that a simple equality test on the values of the attributes will cause us to miss a
+significant number of duplicate records. For example, let’s compare the business We’re going to use a sample data set from the UC Irvine Machine Learning Reposi‐
+tory, which is a fantastic source for a variety of interesting (and free) data sets for
+research and education. The data set we’ll be analyzing was curated from a record
+linkage study that was performed at a German hospital in 2010, and it contains sev‐
+eral million pairs of patient records that were matched according to several different
+criteria, such as the patient’s name (first and last), address, and birthday. Each match‐
+ing field was assigned a numerical score from 0.0 to 1.0 based on how similar the
+strings were, and the data was then hand-labeled to identify which pairs represented
+the same person and which did not. The underlying values of the fields themselves
+that were used to create the data set were removed to protect the privacy of the
+patients, and numerical identifiers, the match scores for the fields, and the label for
+each pair (match versus nonmatch) were published for use in record linkage research Data scientists come in all shapes and sizes and from a remarkably diverse set of aca‐
+demic backgrounds. Although many have some training in disciplines like computer
+science, mathematics, and physics, other successful data scientists have studied neu‐
+roscience, sociology, and political science. Although these fields study different things
+(e.g., brains, people, political institutions) and have not traditionally required stu‐
+dents to learn how to program, they all share two important characteristics that have
+made them fertile training ground for data scientists.
+First, all of these fields are interested in understanding relationships between entities,
+whether between neurons, individuals, or countries, and how these relationships
+affect the observed behavior of the entities. Second, the explosion of digital data over
+the past decade gave researchers access to vast quantities of information about these
+relationships, and required that they develop new skills in order to acquire and man‐
+age these data sets.
+As these researchers began to collaborate with each other and with computer scien‐
+tists, they also discovered that many of the techniques that they were using to analyze
+relationships could be applied to problems across domains, and the field of network
+science was born. Network science applies tools from graph theory, the mathematical
+discipline that studies the properties of pairwise relationships (called edges) between a
+set of entities (called vertices). Graph theory is also widely used in computer science
+to study everything from data structures to computer architecture to the design of
+networks like the Internet. Graph theory and network science have had a significant impact in the business
+world as well. Almost every major Internet company derives a significant fraction of
+its value by its ability to build and analyze an important network of relationships bet‐
+ter than any of its competitors: the recommendation algorithms that are used at Ama‐
+zon and Netflix rely on the networks of consumer-item purchases (Amazon) and
+user-movie ratings (Netflix) that each company creates and controls. Facebook and
+LinkedIn built graphs of relationships between people that they analyze in order to
+organize content feeds, promote advertisements, and broker new connections. And
+perhaps most famously of all, Google used the PageRank algorithm that the founders
+developed to create a fundamentally better way to search the World Wide Web.
+The computational and analytical needs of these network-centric companies helped
+drive the creation of distributed processing frameworks like MapReduce as well as the
+hiring of data scientists who were capable of using these new tools to analyze and cre‐
+ate value from the ever-expanding volume of data. One of the earliest use cases for
+MapReduce was to create a scalable and reliable way to solve the equation at the heart
+of PageRank. Over time, as the graphs became larger and data scientists needed to
+analyze them faster, new graph-parallel processing frameworks, like Pregel at Google,
+Giraph at Yahoo!, and GraphLab at Carnegie Mellon, were developed. These frame‐
+works supported fault-tolerant, in-memory, iterative, and graph-centric processing,
+and were capable of performing certain types of graph computations orders of mag‐
+nitude faster than the equivalent data-parallel MapReduce jobs.
+In this chapter, we’re going to introduce a Spark library called GraphX, which extends
+Spark to support many of the graph-parallel processing tasks that Pregel, Giraph, and
+GraphLab support. Although it cannot handle every graph computation as quickly as
+the custom graph frameworks do, the fact that it is a Spark library means that it is
+relatively easy to bring GraphX into your normal data analysis workflow whenever
+you want to analyze a network-centric data set. With it, you can combine graph-
+parallel programming with the familiar Spark abstractions that you are used to work‐
+ing with.
+The Spark project contains multiple closely integrated components. At its core, Spark
+is a “computational engine” that is responsible for scheduling, distributing, and mon‐
+itoring applications consisting of many computational tasks across many worker
+machines, or a computing cluster. Because the core engine of Spark is both fast and
+general-purpose, it powers multiple higher-level components specialized for various
+workloads, such as SQL or machine learning. These components are designed to
+interoperate closely, letting you combine them like libraries in a software project.
+A philosophy of tight integration has several benefits. First, all libraries and higher-
+level components in the stack benefit from improvements at the lower layers. For
+example, when Spark’s core engine adds an optimization, SQL and machine learning
+libraries automatically speed up as well. Second, the costs associated with running the
+stack are minimized, because instead of running 5–10 independent software systems,
+an organization needs to run only one. These costs include deployment, mainte‐
+nance, testing, support, and others. This also means that each time a new component
+is added to the Spark stack, every organization that uses Spark will immediately be
+able to try this new component. This changes the cost of trying out a new type of data
+analysis from downloading, deploying, and learning a new software project to
+upgrading Spark.
+Finally, one of the largest advantages of tight integration is the ability to build appli‐
+cations that seamlessly combine different processing models. For example, in Spark
+you can write one application that uses machine learning to classify data in real time
+as it is ingested from streaming sources. Simultaneously, analysts can query the
+resulting data, also in real time, via SQL (e.g., to join the data with unstructured log‐
+files). In addition, more sophisticated data engineers and data scientists can access
+the same data via the Python shell for ad hoc analysis. Others might access the data in
+standalone batch applications. All the while, the IT team has to maintain only one
